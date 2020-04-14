@@ -1,50 +1,58 @@
-def KMeans(X,centers):
-  # Number of clusters
-  K = 256
-  thresh=1e-5
-  # Number of training data
-  n = X.shape[0]
-  # Number of features in the data
-  c = X.shape[1]
+def KMeans(data,centroid,max_iter):
+    
+    # std_dev = data.std(axis=0)
+    # zero_std_mask = std_dev == 0
+    # if zero_std_mask.any():
+    #     std_dev[zero_std_mask] = 1.0  
+    # data= data / std_dev
+    
+    # Number of clusters
+    K = centroid.shape[0]
+    
+    thresh=1e-5
+    
+    # Number of training data
+    N = data.shape[0]
 
 
-  centers_old = np.zeros(centers.shape) # to store old centers
-  centers_new = centers.copy() # Store new centers
+    centroid_prev = np.zeros(centroid.shape) # to store previous centroids
+    centroid_curr = np.array(centroid,copy=True) # Store current centroids
 
-  clusters = np.zeros(n)
-  distances = np.zeros((n,K))
+    clusters = np.zeros(N,dtype='uint8')
+    distances = np.zeros((N,K))
 
-  error = np.linalg.norm(centers_new - centers_old,ord=1)
+    error = thresh+1
+    
+    iter=0
 
-  # When, after an update, the estimate of that center stays the same, exit loop
-  while error >thresh:
-      # Measure the distance to every center
-      for i in range(K):
-          distances[:,i] = np.linalg.norm(X - centers_new[i], axis=1,ord=1)
-      # Assign all training data to closest center
-      clusters = np.argmin(distances, axis = 1)
-      
-      centers_old = deepcopy(centers_new)
-      # Calculate mean for every cluster and update the center
-      for i in range(K):
-          centers_new[i] = np.median(X[clusters == i], axis=0)
-      error = np.linalg.norm(centers_new - centers_old,ord=1)
+    while error >thresh and iter<max_iter:
+        iter+=1
+        # Measure the distance to every centroid
+        for i in range(K):
+            distances[:,i] = np.linalg.norm(data - centroid_curr[i], axis=1,ord=1)
+        # Assign all training data to closest centroid
+        clusters = np.argmin(distances, axis = 1)
+        
+        centroid_prev = np.array(centroid_curr,copy=True)
+        # Calculate median for every cluster and update the centroid
+        for i in range(K):
+            centroid_curr[i] = np.nanmedian(data[clusters == i], axis=0)
+        
+        error = np.linalg.norm(centroid_curr - centroid_prev,ord=1)
+        
+    return np.asarray(centroid_curr),np.asarray(clusters,dtype='uint8')
   
-  return np.asarray(centers_new),np.asarray(clusters,dtype='uint8')
-
 def pq(data, P, init_centroids, max_iter):
     data_partitioned=np.asarray(np.hsplit(data,P))
-    whitened=scipy.cluster.vq.whiten(data_partitioned)
+    
     codebooks=[]
     codes=[]
+
     for i in range(P):
-        W,C=KMeans(whitened[i],init_centroids[i])
+        W,C=KMeans(data_partitioned[i],init_centroids[i],max_iter)
         codebooks.append(W)
         codes.append(C)
     codebooks=np.asarray(codebooks)
     codes=np.asarray(codes,dtype='uint8').T
-    print(codebooks.shape,codes.shape)
+    
     return codebooks,codes
-
-def query(queries, codebooks, codes, T):
-    pass
