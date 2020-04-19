@@ -54,3 +54,8 @@ def pq(data, P, init_centroids, max_iter):
     codes=np.asarray(codes,dtype='uint8').T
     
     return codebooks,codes
+
+
+def query(queries, codebooks, codes, T):
+    #locate dictionary for each query vector and intersect each vector
+    pass
