@@ -30,7 +30,7 @@ def KMeans(data, centroid, max_iter):
         centroid_prev = np.array(centroid_curr, copy=True)
         # Calculate median for every cluster and update the centroid
         for i in range(K):
-            centroid_curr[i] = np.nanmedian(data[clusters == i], axis=0)
+            centroid_curr[i] = np.median(data[clusters == i], axis=0)
 
         error = np.linalg.norm(centroid_curr - centroid_prev, ord=1)
 
