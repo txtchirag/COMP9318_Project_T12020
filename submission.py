@@ -1,41 +1,35 @@
 import numpy as np
+from scipy.spatial.distance import cdist
+
 
 def KMeans(data, centroid, max_iter):
     # Number of clusters
     K = centroid.shape[0]
-
-    thresh = 1e-5
-
     # Number of training data
     N = data.shape[0]
 
-    centroid_prev = np.zeros(centroid.shape)  # to store previous centroids
-    centroid_curr = np.array(centroid, copy=True)  # Store current centroids
-
-    clusters = np.zeros(N, dtype='uint8')
-    distances = np.zeros((N, K))
-
+    thresh = 1e-5
     error = thresh + 1
 
     iter = 0
+    centroid_curr = np.array(centroid, copy=True)  # Store current centroids
 
     while error > thresh and iter < max_iter:
         iter += 1
         # Measure the distance to every centroid
-        for i in range(K):
-            distances[:, i] = np.linalg.norm(data - centroid_curr[i], axis=1, ord=1)
+        distances = cdist(data, centroid_curr, 'cityblock')
         # Assign all training data to closest centroid
         clusters = np.argmin(distances, axis=1)
 
         centroid_prev = np.array(centroid_curr, copy=True)
         # Calculate median for every cluster and update the centroid
-        for i in range(K):
+        for i in range(1, K):
             centroid_curr[i] = np.median(data[clusters == i], axis=0)
 
-        error = np.linalg.norm(centroid_curr - centroid_prev, ord=1)
+        error = np.linalg.norm(centroid_curr - centroid_prev) / np.sqrt(N)
 
-    for i in range(K):
-        distances[:, i] = np.linalg.norm(data - centroid_curr[i], axis=1, ord=1)
+    # Measure the distance to every centroid
+    distances = cdist(data, centroid_curr, 'cityblock')
     # Assign all training data to closest centroid
     clusters = np.argmin(distances, axis=1)
 
@@ -54,7 +48,7 @@ def pq(data, P, init_centroids, max_iter):
         codes.append(C)
     codebooks = np.asarray(codebooks)
     codes = np.asarray(codes, dtype='uint8').T
-    
+
     return codebooks, codes
 
 
