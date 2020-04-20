@@ -14,7 +14,7 @@ def KMeans(data, centroid, max_iter):
     iter = 0
     centroid_curr = np.array(centroid, copy=True)  # Store current centroids
 
-    while error > thresh and iter < max_iter:
+    while error>thresh and iter < max_iter:
         iter += 1
         # Measure the distance to every centroid
         distances = cdist(data, centroid_curr, 'cityblock')
@@ -23,8 +23,12 @@ def KMeans(data, centroid, max_iter):
 
         centroid_prev = np.array(centroid_curr, copy=True)
         # Calculate median for every cluster and update the centroid
-        for i in range(1, K):
-            centroid_curr[i] = np.median(data[clusters == i], axis=0)
+
+        for i in range(K):
+            val=data[clusters == i]
+
+            if val.size!=0:
+                centroid_curr[i] = np.median(val, axis=0)
 
         error = np.linalg.norm(centroid_curr - centroid_prev) / np.sqrt(N)
 
