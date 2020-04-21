@@ -12,31 +12,30 @@ def KMeans(data, centroid, max_iter):
     error = thresh + 1
 
     iter = 0
-    centroid_curr = np.array(centroid, copy=True)  # Store current centroids
+    codebook_curr = np.array(centroid, copy=True)  # Store current centroids in codebook
 
     while error > thresh and iter < max_iter:
         iter += 1
-        # Measure the distance to every centroid
-        distances = cdist(data, centroid_curr, 'cityblock')
-        # Assign all training data to closest centroid
-        clusters = np.argmin(distances, axis=1)
+        # Measure the distance to every centroid loacation in codebook
+        distances = cdist(data, codebook_curr, 'cityblock')
+        # Assign all training data to closest centroid in codes
+        codes = np.argmin(distances, axis=1)
 
-        centroid_prev = np.array(centroid_curr, copy=True)
-        # Calculate median for every cluster and update the centroid
+        codebook_prev = np.array(codebook_curr, copy=True)
+        # Calculate median for every cluster in codes and update the centroid in codebook
+        for c in range(K):
+            points = data[codes == c]
+            if points.size != 0:
+                codebook_curr[c] = np.median(points, axis=0)
 
-        for i in range(K):
-            val = data[clusters == i]
-            if val.size != 0:
-                centroid_curr[i] = np.median(val, axis=0)
+        error = np.linalg.norm(codebook_curr - codebook_prev) / np.sqrt(N)
 
-        error = np.linalg.norm(centroid_curr - centroid_prev) / np.sqrt(N)
+    # Measure the distance to every centroid in codebook
+    distances = cdist(data, codebook_curr, 'cityblock')
+    # Assign all training data to closest centroid in codes
+    codes = np.argmin(distances, axis=1)
 
-    # Measure the distance to every centroid
-    distances = cdist(data, centroid_curr, 'cityblock')
-    # Assign all training data to closest centroid
-    clusters = np.argmin(distances, axis=1)
-
-    return np.asarray(centroid_curr), np.asarray(clusters, dtype='uint8')
+    return np.asarray(codebook_curr), np.asarray(codes, dtype='uint8')
 
 
 def pq(data, P, init_centroids, max_iter):
