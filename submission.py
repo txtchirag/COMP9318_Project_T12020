@@ -16,7 +16,7 @@ def KMeans(data, centroid, max_iter):
 
     while error > thresh and iter < max_iter:
         iter += 1
-        # Measure the distance to every centroid loacation in codebook
+        # Measure the distance to every centroid location in codebook
         distances = cdist(data, codebook_curr, 'cityblock')
         # Assign all training data to closest centroid in codes
         codes = np.argmin(distances, axis=1)
