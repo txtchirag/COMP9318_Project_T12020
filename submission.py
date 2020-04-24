@@ -113,7 +113,7 @@ def query(queries, codebooks, codes, T):
         # dict to keep track of traversed
         trav = {}
 
-        # initalize an array to uses as Index lookup table for P size
+        # initialize  an array to uses as Index lookup table for P size
         q_i = [0 for _ in range(P)]
 
 
@@ -155,11 +155,12 @@ def query(queries, codebooks, codes, T):
     Id = np.identity(P)
     # split queries into P parts
     qparts = np.stack(np.hsplit(queries, P), axis=1)
-    # Result  List of nQ candidates
+    # Result  List for nQ queries
     CandidateList = []
 
     # run query search for each query vector
     for q in range(nQ):
+        # Run query search and store each of the candidate set
         Cset = querysearch(qparts[q])
         CandidateList.append(Cset)
 
