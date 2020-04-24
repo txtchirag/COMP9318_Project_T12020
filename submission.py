@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.spatial.distance import cdist
-
+from heapq import heappop, heappush
 
 def KMeans(data, centroid, max_iter):
     # Number of clusters
@@ -16,7 +16,7 @@ def KMeans(data, centroid, max_iter):
 
     while error > thresh and iter < max_iter:
         iter += 1
-        # Measure the distance to every centroid location in codebook
+        # Measure the distance to every centroid loacation in codebook
         distances = cdist(data, codebook_curr, 'cityblock')
         # Assign all training data to closest centroid in codes
         codes = np.argmin(distances, axis=1)
@@ -39,7 +39,7 @@ def KMeans(data, centroid, max_iter):
 
 
 def pq(data, P, init_centroids, max_iter):
-    data_partitioned = np.asarray(np.hsplit(data, P))
+    data_partitioned = np.hsplit(data, P)
 
     codebooks = []
     codes = []
@@ -53,7 +53,116 @@ def pq(data, P, init_centroids, max_iter):
 
     return codebooks, codes
 
+def pqTable_func(query,codebooks):
+    P,K,D=codebooks.shape
+    pqTable = dict()
+    for i in range(P):
+        d = cdist(query[i].reshape(-1, D), codebooks[i], 'cityblock')
+        c_i = np.argsort(d)
+        d = np.sort(d)
+        qvsU = {}
+        for k in range(K):
+            qvsU[k] = (d[0][k], c_i[0][k])
+        pqTable[i] = qvsU
+    return pqTable
+
+def pqTable_func(query,codebooks):
+    P,K,D=codebooks.shape
+    pqTable = dict()
+    for i in range(P):
+        d = cdist(query[i].reshape(-1, D), codebooks[i], 'cityblock')
+        c_i = np.argsort(d)
+        d = np.sort(d)
+        qvsU = {}
+        for k in range(K):
+            qvsU[k] = (d[0][k], c_i[0][k])
+        pqTable[i] = qvsU
+    return pqTable
+
+
+def traversed(L, q_i,T,K):
+    if L > T:
+        return False
+    for i in range(len(q_i)):
+        if q_i[i] >= K:
+            return False
+    return True
+
+
+def getvalue(q_i,pqTable):
+    P=len(q_i)
+    dist = 0
+    c_i = []
+    for p in range(P):
+        qvsU = pqTable[p]
+        d, i = qvsU[q_i[p]]
+        dist += d
+
+        c_i.append(i)
+
+    return (dist, tuple(q_i), tuple(c_i))
+
+
+def label(c_i,out,indexdict):
+    if out==None:
+        out=set()
+    val = indexdict.get(c_i)
+    if val:
+        for i in val:
+            out.add(i)
+    return out
+
+def createIndex(codes):
+    indexdict = {}
+
+    for i in range(len(codes)):
+        temp = indexdict.get(tuple(codes[i]))
+        if None == temp:
+            val = []
+            val.append(i)
+            indexdict[tuple(codes[i])] = val
+        else:
+            val.append(i)
+            indexdict[tuple(codes[i])] = val
+
+    return indexdict
+
+def querysearch(query, codebooks, codes, T):
+    P, K, D = codebooks.shape
+    indexdict=createIndex(codes)
+    pqTable = pqTable_func(query, codebooks)
+    out = set()
+
+    Id = np.identity(P)
+    trav = {}
+    q_i = [0 for x in range(P)]
+
+    trav[tuple(q_i)] = True
+    h = []
+    (dist, q_i, c_i) = getvalue(q_i,pqTable)
+    heappush(h, (dist, q_i, c_i))
+    L = 0 if (out == set()) else (len(out))
+    while (traversed(L, q_i,T,K)):
+        dist, q_i, c_i = heappop(h)
+        out=(label(c_i,out,indexdict))
+        L = 0 if (out == set()) else (len(out))
+        for p in range(P):
+            if (q_i[p] < K - 1 and (
+                    tuple(np.subtract(q_i, Id[p]) == tuple([0 for x in range(P)])) or trav.get(np.add(q_i, Id[p])))):
+                (dist, q_i, c_i) = getvalue(np.add(q_i, Id[p]),pqTable)
+                heappush(h, (dist, q_i, c_i))
+
+    return out
 
 def query(queries, codebooks, codes, T):
-    # locate dictionary for each query vector and intersect each vector
-    pass
+    P,K,D = codebooks.shape
+    nQ=queries.shape[0]
+    qparts = np.stack(np.hsplit(queries, P), axis=1)
+    CandidateList = []
+
+
+    for q in range(nQ):
+        Cset = querysearch(qparts[q],codebooks,codes,T)
+        CandidateList.append(Cset)
+
+    return CandidateList
