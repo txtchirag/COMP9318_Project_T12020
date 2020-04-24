@@ -1,5 +1,4 @@
 from heapq import heappop, heappush
-
 import numpy as np
 from scipy.spatial.distance import cdist
 
@@ -56,19 +55,6 @@ def pq(data, P, init_centroids, max_iter):
 
 
 def query(queries, codebooks, codes, T):
-    def pqTable_func(query, codebooks):
-        P, K, D = codebooks.shape
-        pqTable = dict()
-        for i in range(P):
-            d = cdist(query[i].reshape(-1, D), codebooks[i], 'cityblock')
-            c_i = np.argsort(d)
-            d = np.sort(d)
-            qvsU = {}
-            for k in range(K):
-                qvsU[k] = (d[0][k], c_i[0][k])
-            pqTable[i] = qvsU
-        return pqTable
-
     def pqTable_func(query):
         pqTable = dict()
         for i in range(P):
@@ -81,13 +67,7 @@ def query(queries, codebooks, codes, T):
             pqTable[i] = qvsU
         return pqTable
 
-    def traversed(L, q_i, T, K):
-        if L > T:
-            return False
-        for i in range(len(q_i)):
-            if q_i[i] >= K:
-                return False
-        return True
+
 
     def getvalue(q_i, pqTable):
         P = len(q_i)
@@ -100,7 +80,7 @@ def query(queries, codebooks, codes, T):
 
             c_i.append(i)
 
-        return (dist, tuple(q_i), tuple(c_i))
+        return dist, tuple(q_i), tuple(c_i)
 
     def label(c_i, out):
         if out == None:
@@ -127,36 +107,58 @@ def query(queries, codebooks, codes, T):
         return indexdict
 
     def querysearch(query):
+        # Compute query vs codebook distance table
         pqTable = pqTable_func(query)
         out = set()
+        # dict to keep track of traversed
         trav = {}
-        q_i = [0 for x in range(P)]
 
+        # initalize an array to uses as Index lookup table for P size
+        q_i = [0 for _ in range(P)]
+
+
+
+        # 3.1 algorithm for P size
         trav[tuple(q_i)] = True
+        # create a minheap object
         h = []
         (dist, q_i, c_i) = getvalue(q_i, pqTable)
         heappush(h, (dist, q_i, c_i))
+
+        # length of the number of candidates so far added
         L = 0 if (out == set()) else (len(out))
+
+        # check if reached T or heap is empty
         while L < T and len(h) > 0:
             dist, q_i, c_i = heappop(h)
+            # Candidate set being updated
             out = (label(c_i, out))
+            # length of the number of candidates so far added
             L = 0 if (out == set()) else (len(out))
+
+            # Heapifying and traversing in P dimension
             for p in range(P):
-                if (q_i[p] < K - 1 and (
-                        tuple(np.subtract(q_i, Id[p]) == tuple([0 for x in range(P)])) or trav.get(
-                    np.add(q_i, Id[p])))):
+
+                # Using identity matrix to search for nearest distant neighbor
+                if q_i[p] < K - 1 and (tuple(np.subtract(q_i, Id[p]) == tuple([0 for _ in range(P)])) or trav.get(np.add(q_i, Id[p]))):
                     (dist, q_i, c_i) = getvalue(np.add(q_i, Id[p]), pqTable)
                     heappush(h, (dist, q_i, c_i))
 
         return out
 
     P, K, D = codebooks.shape
+    # No of query vectors
     nQ = queries.shape[0]
+    # Create inverted Index
     indexdict = createIndex(codes)
+    # PxP Identity Matrix
     Id = np.identity(P)
+    # split queries into P parts
     qparts = np.stack(np.hsplit(queries, P), axis=1)
+    # Result  List of nQ candidates
     CandidateList = []
-    
+
+    # run query search for each query vector
     for q in range(nQ):
         Cset = querysearch(qparts[q])
         CandidateList.append(Cset)
