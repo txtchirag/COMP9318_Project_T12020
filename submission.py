@@ -113,7 +113,7 @@ def query(queries, codebooks, codes, T):
         # dict to keep track of traversed
         trav = {}
 
-        # initialize  an array to uses as Index lookup table for P size
+        # initialize  an array to use as Index lookup table for P size
         q_i = [0 for _ in range(P)]
 
 
