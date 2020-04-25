@@ -1,4 +1,5 @@
 from heapq import heappop, heappush
+
 import numpy as np
 from scipy.spatial.distance import cdist
 
@@ -67,8 +68,6 @@ def query(queries, codebooks, codes, T):
             pqTable[i] = qvsU
         return pqTable
 
-
-
     def getvalue(q_i, pqTable):
         dist = 0
         c_i = []
@@ -76,7 +75,6 @@ def query(queries, codebooks, codes, T):
             d, i = pqTable[p][q_i[p]]
             dist += d
             c_i.append(i)
-
         return dist, tuple(q_i), tuple(c_i)
 
     def label(c_i, out):
@@ -89,7 +87,7 @@ def query(queries, codebooks, codes, T):
     def createIndex(codes):
         indexdict = {}
         for i in range(len(codes)):
-            val = indexdict.get(tuple(codes[i]),[])
+            val = indexdict.get(tuple(codes[i]), [])
             val.append(i)
             indexdict[tuple(codes[i])] = val
         return indexdict
@@ -97,19 +95,15 @@ def query(queries, codebooks, codes, T):
     def querysearch(query):
         # Compute query vs codebook distance table
         pqTable = pqTable_func(query)
-
-        out = set()
         # dict to keep track of traversed
         trav = {}
-
         # initialize  an array to uses as Index lookup table for P size
-        q_i = np.asarray([0 for _ in range(P)],dtype='uint8')
+        q_i = np.asarray([0 for _ in range(P)], dtype='uint8')
 
         # 3.1 algorithm for P size
-
+        out = set()
         # create a minheap object
         h = []
-
         heappush(h, (getvalue(q_i, pqTable)))
         trav[tuple(q_i)] = True
 
@@ -121,7 +115,6 @@ def query(queries, codebooks, codes, T):
             _, q_i, c_i = heappop(h)
             trav.pop(tuple(q_i))
 
-
             # Candidate set being updated
             out = (label(c_i, out))
             # length of the number of candidates so far added
@@ -130,12 +123,11 @@ def query(queries, codebooks, codes, T):
             # Heapifying and traversing in P dimension
             for p in range(P):
                 # Using identity matrix to search for nearest distant neighbor
-                neigh=np.add(q_i, Id[p])
+                neigh = np.add(q_i, Id[p])
 
                 if q_i[p] < K - 1 and not trav.get(tuple(neigh)):
                     heappush(h, (getvalue(tuple(neigh), pqTable)))
                     trav[tuple(neigh)] = True
-
 
         return out
 
@@ -145,7 +137,7 @@ def query(queries, codebooks, codes, T):
     # Create inverted Index
     indexdict = createIndex(codes)
     # PxP Identity Matrix
-    Id = np.identity(P,dtype=bool)
+    Id = np.identity(P, dtype=bool)
     # split queries into P parts
     qparts = np.stack(np.hsplit(queries, P), axis=1)
     # Result  List for nQ queries
