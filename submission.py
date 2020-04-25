@@ -70,21 +70,16 @@ def query(queries, codebooks, codes, T):
 
 
     def getvalue(q_i, pqTable):
-        P = len(q_i)
         dist = 0
         c_i = []
         for p in range(P):
-            qvsU = pqTable[p]
-            d, i = qvsU[q_i[p]]
+            d, i = pqTable[p][q_i[p]]
             dist += d
-
             c_i.append(i)
 
         return dist, tuple(q_i), tuple(c_i)
 
     def label(c_i, out):
-        if out == None:
-            out = set()
         val = indexdict.get(c_i)
         if val:
             for i in val:
@@ -93,44 +88,40 @@ def query(queries, codebooks, codes, T):
 
     def createIndex(codes):
         indexdict = {}
-
         for i in range(len(codes)):
-            temp = indexdict.get(tuple(codes[i]))
-            if None == temp:
-                val = []
-                val.append(i)
-                indexdict[tuple(codes[i])] = val
-            else:
-                val.append(i)
-                indexdict[tuple(codes[i])] = val
-
+            val = indexdict.get(tuple(codes[i]),[])
+            val.append(i)
+            indexdict[tuple(codes[i])] = val
         return indexdict
 
     def querysearch(query):
         # Compute query vs codebook distance table
         pqTable = pqTable_func(query)
+
         out = set()
         # dict to keep track of traversed
         trav = {}
 
-        # initialize  an array to use as Index lookup table for P size
-        q_i = [0 for _ in range(P)]
-
-
+        # initialize  an array to uses as Index lookup table for P size
+        q_i = np.asarray([0 for _ in range(P)],dtype='uint8')
 
         # 3.1 algorithm for P size
-        trav[tuple(q_i)] = True
+
         # create a minheap object
         h = []
-        (dist, q_i, c_i) = getvalue(q_i, pqTable)
-        heappush(h, (dist, q_i, c_i))
+
+        heappush(h, (getvalue(q_i, pqTable)))
+        trav[tuple(q_i)] = True
 
         # length of the number of candidates so far added
-        L = 0 if (out == set()) else (len(out))
+        L = 0
 
         # check if reached T or heap is empty
         while L < T and len(h) > 0:
-            dist, q_i, c_i = heappop(h)
+            _, q_i, c_i = heappop(h)
+            trav.pop(tuple(q_i))
+
+
             # Candidate set being updated
             out = (label(c_i, out))
             # length of the number of candidates so far added
@@ -138,11 +129,13 @@ def query(queries, codebooks, codes, T):
 
             # Heapifying and traversing in P dimension
             for p in range(P):
-
                 # Using identity matrix to search for nearest distant neighbor
-                if q_i[p] < K - 1 and (tuple(np.subtract(q_i, Id[p]) == tuple([0 for _ in range(P)])) or trav.get(np.add(q_i, Id[p]))):
-                    (dist, q_i, c_i) = getvalue(np.add(q_i, Id[p]), pqTable)
-                    heappush(h, (dist, q_i, c_i))
+                neigh=np.add(q_i, Id[p])
+
+                if q_i[p] < K - 1 and not trav.get(tuple(neigh)):
+                    heappush(h, (getvalue(tuple(neigh), pqTable)))
+                    trav[tuple(neigh)] = True
+
 
         return out
 
@@ -152,7 +145,7 @@ def query(queries, codebooks, codes, T):
     # Create inverted Index
     indexdict = createIndex(codes)
     # PxP Identity Matrix
-    Id = np.identity(P)
+    Id = np.identity(P,dtype=bool)
     # split queries into P parts
     qparts = np.stack(np.hsplit(queries, P), axis=1)
     # Result  List for nQ queries
